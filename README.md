@@ -1,8 +1,8 @@
-# Ship Route Optimization
+# Samudra Sarthi
 
 ## Overview
 
-The Ship Route Optimization project provides a web-based application for determining optimal shipping routes based on various inputs like start and end ports, ship type, and cargo. The system integrates real-time weather data to enhance route efficiency, considering factors such as fuel usage, passenger comfort, and safety.
+Samudra Sarthi is a project that provides a web-based application for determining optimal shipping routes based on various inputs like start and end ports, ship type, and cargo. The system integrates real-time weather data to enhance route efficiency, considering factors such as fuel usage, passenger comfort, and safety.
 
 ## Live Demo
 
@@ -20,7 +20,7 @@ NOTE: This website is just a prototype as the project is still under development
 ## How to Use
 
 1. **Access the Application:**
-   - Visit the deployed URL: [http://your-deployed-url.com](http://your-deployed-url.com).
+   - Visit the deployed URL: [samudra-sarthi.app](https://samudra-sarthi.vercel.app/).
 
 2. **Input Parameters:**
    - Enter the start and end ports, ship type, and cargo type in the provided fields.
