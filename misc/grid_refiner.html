@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Leaflet Map</title>
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    />
+    <style>
+      * {
+        margin: 0px;
+        padding: 0px;
+      }
+      #map {
+        height: 1000px;
+        /* width: 1000px; */
+        z-index: 0;
+      }
+      ::-webkit-scrollbar {
+        display: none;
+      }
+      * {
+        margin: 0;
+        padding: 0;
+      }
+      .tile {
+        position: absolute;
+        opacity: 20%;
+        background-color: blue;
+        /* outline: 0.1px solid black; */
+        width: 5px;
+        height: 5px;
+        z-index: 10;
+      }
+      .tile:hover {
+        outline: 1px solid black;
+      }
+      .menu {
+        z-index: 100;
+        /* border: 1px solid blue; */
+        position: fixed;
+        left: 20px;
+        top: 10px;
+        /* visibility: hidden; */
+      }
+      .menu button {
+        cursor: pointer;
+        margin-top: 15px;
+        margin-right: 7.5px;
+        border-radius: 10px;
+        padding: 10px;
+        border: none;
+
+        /* transition: 0.25s; */
+        font-weight: 700;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        font-size: 10px;
+      }
+
+      .menu button {
+        background-color: rgb(58, 58, 58);
+        color: white;
+      }
+
+      .menu button:hover {
+        background-color: rgb(230, 230, 230);
+        color: black;
+        outline: 1px solid black;
+        /* box-shadow: 0px 0px 10px black; */
+      }
+    </style>
+  </head>
+  <body>
+    <div id="map"></div>
+    <div class="overlay-container" id="overlay-container"></div>
+
+    <div class="menu">
+      <button onclick="moveBatchRight()">Right</button>
+      <button onclick="moveBatchDown()">Down</button>
+      <button onclick="moveBatchLeft()">Left</button>
+      <button onclick="moveBatchUp()">Up</button>
+      <button onclick="saveGrid()">Save</button>
+    </div>
+    <div>
+      <label for="latitude">Latitude:</label>
+      <input
+        type="text"
+        id="latitude"
+        name="latitude"
+        placeholder="Enter latitude"
+        required
+      />
+      <br />
+      <label for="longitude">Longitude:</label>
+      <input
+        type="text"
+        id="longitude"
+        name="longitude"
+        placeholder="Enter longitude"
+        required
+      />
+      <br />
+      <button type="button" onclick="updateMap()">Update Map</button>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+      const MIN_LAT = 0;
+      const MAX_LAT = 30;
+      const MIN_LON = 60;
+      const MAX_LON = 100;
+      var bounds = [
+        [MIN_LAT, MIN_LON],
+        [MAX_LAT, MAX_LON],
+      ];
+
+      // Initialize the map
+      var map = L.map("map", {
+        // zoomSnap: 0.1,
+        // maxBounds: bounds, // Set strict bounds
+        // maxBoundsViscosity: 1.0, // Prevent any panning outside the bounds
+        // dragging: false, // Disable map dragging
+        // touchZoom: false, // Disable touch zoom
+        // doubleClickZoom: false, // Disable double-click zoom
+        // scrollWheelZoom: false, // Disable scroll wheel zoom
+        // boxZoom: false, // Disable box zoom
+        // keyboard: false, // Disable keyboard interactions
+        // tap: false, // Disable touch tap zoom for mobile
+      });
+
+      // Fit the map to the bounds without padding
+      map.fitBounds(bounds, { padding: [0, 0] });
+      map.zoomControl.remove();
+
+      //   const MIN_LAT = 0;
+      //   const MAX_LAT = 30;
+      //   const MIN_LON = 60;
+      //   const MAX_LON = 100;
+      //   var map = L.map("map", {
+      //     zoomSnap: 0.1,
+      //   }).setView([51.505, -0.09], 13);
+      //   var bounds = [
+      //     [MIN_LAT, MIN_LON],
+      //     [MAX_LAT, MAX_LON],
+      //   ];
+      //   map.fitBounds(bounds, { padding: [0, 0] });
+      //   map.zoomControl.remove();
+      //   map.dragging.disable();
+      //   map.touchZoom.disable();
+      //   map.doubleClickZoom.disable();
+      //   map.scrollWheelZoom.disable();
+      //   map.boxZoom.disable();
+      //   map.keyboard.disable();
+      //   if (map.tap) map.tap.disable();
+
+      L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+        attribution:
+          'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors',
+        maxZoom: 18,
+      }).addTo(map);
+
+      function updateMap() {
+        var latitude = parseFloat(document.getElementById("latitude").value);
+        var longitude = parseFloat(document.getElementById("longitude").value);
+
+        if (!isNaN(latitude) && !isNaN(longitude)) {
+          //   map.setView([latitude, longitude], 13);
+          var topLeft = [latitude, longitude];
+          var bottomRight = [latitude - 0.05, longitude + 0.05];
+          var bounds = [topLeft, bottomRight];
+          console.log(bounds);
+
+          L.rectangle(bounds, { weight: 1 })
+            .addTo(map)
+            .bindPopup("Coordinates: " + bounds);
+        }
+      }
+
+      var ROWS;
+      var COLS;
+      var TILE_SIZE = 5;
+      const CELL_LEN = 0.05; // Degrees
+
+      var grid_array = [];
+      function fetchGrid() {
+        fetch("./grid_data.json")
+          .then((response) => response.json())
+          .then((data) => {
+            grid_array = data;
+            console.log(grid_array);
+            ROWS = grid_array.length;
+            COLS = grid_array[0].length;
+            generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+          })
+          .catch((error) => {
+            console.error("Error fetching grid:", error);
+          });
+      }
+      fetchGrid();
+
+      function generateGrid(startRow, startCol, endRow, endCol) {
+        for (let i = startRow; i < endRow; i++) {
+          for (let j = startCol; j < endCol; j++) {
+            let latitude = MAX_LAT - i * CELL_LEN;
+            let longitude = MIN_LON + j * CELL_LEN;
+            let topLeft = [latitude, longitude];
+            let bottomRight = [latitude - 0.05, longitude + 0.05];
+            let bounds = [topLeft, bottomRight];
+            let rectangle = L.rectangle(bounds, { weight: 0 })
+              .addTo(map)
+              .on("click", function () {
+                // console.log("Coordinates: " + bounds);
+                toggleType(i, j, rectangle);
+              })
+              .on("mouseover", function () {
+                rectangle.setStyle({ weight: 1, color: "black" });
+              })
+              .on("mouseout", function () {
+                rectangle.setStyle({ weight: 0 });
+              });
+
+            if (grid_array[i][j] == 3) {
+              rectangle.setStyle({ fillColor: "red" });
+            } else if (grid_array[i][j] == 2) {
+              rectangle.setStyle({ fillColor: "green" });
+            } else {
+              rectangle.setStyle({ fillColor: "blue" });
+            }
+          }
+        }
+      }
+
+      function toggleType(i, j, rect) {
+        // console.log("CLICKED!!");
+        // console.log(rect); // rect is a leaflet rectangle
+        // console.log(`i: ${i}`);
+        // console.log(`j: ${j}`);
+        let lat = MAX_LAT - i * CELL_LEN;
+        let lon = MIN_LON + j * CELL_LEN;
+        // console.log(`Lat: ${lat}`);
+        // console.log(`Lon: ${lon}`);
+
+        // Update the grid_array with the new type
+        if (grid_array[i][j] == 1) {
+          grid_array[i][j] = 2;
+          rect.setStyle({ fillColor: "green" });
+        } else if (grid_array[i][j] == 2) {
+          grid_array[i][j] = 3;
+          rect.setStyle({ fillColor: "red" });
+        } else if (grid_array[i][j] == 3) {
+          grid_array[i][j] = 1;
+          rect.setStyle({ fillColor: "blue" });
+        }
+
+        // grid_array[i][j] = 1;
+        //   rect.setStyle({ fillColor: "blue" });
+        // console.log(grid_array);
+      }
+
+      function moveBatchDown() {
+        clearGrid();
+        count_i += diff_i;
+        if (count_i >= ROWS) {
+          count_i = 0;
+        }
+        generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+      }
+
+      function moveBatchLeft() {
+        clearGrid();
+        count_j -= diff_j;
+        if (count_j < 0) {
+          count_j = COLS - diff_j;
+        }
+        generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+      }
+
+      function moveBatchUp() {
+        clearGrid();
+        count_i -= diff_i;
+        if (count_i < 0) {
+          count_i = ROWS - diff_i;
+        }
+        generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+      }
+
+      function moveBatchRight() {
+        clearGrid();
+        count_j += diff_j;
+        if (count_j >= COLS) {
+          count_j = 0;
+        }
+        generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+      }
+
+      // function nextBatch() {
+      //   clearGrid();
+      //   count_j += diff_j;
+      //   if (count_j == COLS) {
+      //     count_j = 0;
+      //     count_i += diff_i;
+      //     if (count_i == ROWS) count_i = 0;
+      //   }
+
+      //   generateGrid(count_i, count_j, count_i + diff_i, count_j + diff_j);
+      // }
+
+      function saveGrid() {
+        // Convert the grid_array to a JSON string
+        var jsonGrid = JSON.stringify(grid_array);
+
+        // Create a Blob from the JSON string
+        var blob = new Blob([jsonGrid], { type: "application/json" });
+
+        // Create a link element
+        var a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = "grid_data.json";
+
+        // Trigger the download
+        document.body.appendChild(a);
+        a.click();
+
+        // Remove the link element from the document
+        document.body.removeChild(a);
+      }
+
+      function clearGrid() {
+        // Clear all rectangles from the map
+        map.eachLayer(function (layer) {
+          if (layer instanceof L.Rectangle) {
+            map.removeLayer(layer);
+          }
+        });
+      }
+      var count_i = 0;
+      var count_j = 0;
+      var diff_i = 120;
+      var diff_j = 160;
+
+      class Point {
+        constructor(x, y) {
+          this.x = x;
+          this.y = y;
+        }
+
+        equals(other) {
+          return this.x === other.x && this.y === other.y;
+        }
+
+        toString() {
+          return `(${this.x}, ${this.y})`;
+        }
+
+        // Calculate the Euclidean distance between this point and another point
+        distanceTo(other) {
+          return Math.sqrt((this.x - other.x) ** 2 + (this.y - other.y) ** 2);
+        }
+      }
+
+      var ports = {
+        Kochi: new Point(76.221264, 9.964257),
+        Kandla: new Point(70.227938, 22.984048),
+        // Kolkata: new Point(88.3638, 21.5726),
+        // Mumbai: new Point(72.806695, 18.886458),
+        Chennai: new Point(80.308208, 13.101647),
+        Vishakhapatnam: new Point(83.306028, 17.690662),
+        Porbandar: new Point(69.589944, 21.61886),
+        Jnpt: new Point(72.946, 18.955),
+        Mormugao: new Point(73.796431, 15.41517),
+        Mangalore: new Point(74.820222, 12.929692),
+        Tuticorin: new Point(78.191648, 8.747572),
+        Ennore: new Point(80.308342, 13.109319),
+        Paradip: new Point(86.66982, 20.266891),
+        Haldia: new Point(88.08802, 22.024468),
+        "Port Blair": new Point(92.73328, 11.675247),
+        Hazira: new Point(72.618069, 21.087029),
+        Dahej: new Point(72.542551, 21.656535),
+        Mundra: new Point(69.719024, 22.740756),
+        Pipavav: new Point(71.522883, 20.924004),
+        Gangavaram: new Point(83.242971, 17.623147),
+        Krishnapatnam: new Point(80.125993, 14.247191),
+        Dhamra: new Point(86.898576, 20.79263),
+      };
+
+      for (var port in ports) {
+        var point = ports[port];
+        L.circle([point.y, point.x], {
+          color: "red",
+          fillColor: "#f03",
+          fillOpacity: 0.5,
+          radius: 500,
+        })
+          .addTo(map)
+          .bindPopup(port);
+      }
+    </script>
+  </body>
+</html>

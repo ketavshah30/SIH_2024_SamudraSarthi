@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      rel="stylesheet"
+      href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY="
+      crossorigin=""
+    />
+    <script
+      src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+      integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo="
+      crossorigin=""
+    ></script>
+    <link rel="stylesheet" href="style.css" />
+    <title>Map</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <div class="menu">
+      <h1>Menu</h1>
+      <form action="" name="details" onsubmit="return false;">
+        <label for="startPort"><h2>Start Port</h2></label>
+        <select name="startPort" id="startPort">
+        </select>
+
+        <br>
+
+        <label for="endPort"><h2>End Port</h2></label>
+        <select name="endPort" id="endPort">
+        </select>
+
+        <br>
+
+        <button class="start" onclick="startGeneration()">Start</button> <br>
+      </form>
+
+      <!-- <div id="loadingScreen">
+        <div id="buffer-icon"></div> 
+      </div> -->
+    </div>
+
+    <br />
+    <br />
+    <div id="grid-container"></div>
+
+    <script type="module" src="map_script.js"></script>
+  </body>
+</html>
