@@ -7,11 +7,11 @@ export default defineConfig({
   },
   build: {
     outDir: "dist", // Ensure build outputs to the correct directory
-    // rollupOptions: {
-    //   input: {
-    //     index: "/src/index.html",
-    //   },
-    // },
+    rollupOptions: {
+      input: {
+        index: "/src/index.html",
+      },
+    },
   },
 });
 
