@@ -174,47 +174,58 @@ function generateRouteLogic(GRID, START_PORT, END_PORT) {
     return new Point(x, y);
   }
 
-  // Function to generate a cubic Bézier curve between 4 control points
-  function cubicBezier(p0, p1, p2, p3, t) {
-    const x =
-      Math.pow(1 - t, 3) * p0.x +
-      3 * Math.pow(1 - t, 2) * t * p1.x +
-      3 * (1 - t) * Math.pow(t, 2) * p2.x +
-      Math.pow(t, 3) * p3.x;
+  function getPerpendicularDistance(point, lineStart, lineEnd) {
+    const dx = lineEnd.x - lineStart.x;
+    const dy = lineEnd.y - lineStart.y;
 
-    const y =
-      Math.pow(1 - t, 3) * p0.y +
-      3 * Math.pow(1 - t, 2) * t * p1.y +
-      3 * (1 - t) * Math.pow(t, 2) * p2.y +
-      Math.pow(t, 3) * p3.y;
+    if (dx === 0 && dy === 0) {
+      return Math.sqrt(
+        (point.x - lineStart.x) ** 2 + (point.y - lineStart.y) ** 2
+      );
+    }
 
-    return new Point(x, y);
+    const t =
+      ((point.x - lineStart.x) * dx + (point.y - lineStart.y) * dy) /
+      (dx * dx + dy * dy);
+    const closestX = lineStart.x + t * dx;
+    const closestY = lineStart.y + t * dy;
+
+    return Math.sqrt((point.x - closestX) ** 2 + (point.y - closestY) ** 2);
   }
 
-  // Function to smooth a path using cubic Bézier curves
-  function smoothPathBezier(path, segmentsPerCurve = 20) {
-    const smoothPath = [];
+  // Recursive Ramer-Douglas-Peucker function
+  function rdpSimplify(path, epsilon) {
+    if (path.length < 3) {
+      return path; // No simplification needed for paths with fewer than 3 points
+    }
 
-    // Iterate through points in groups of 4 (p0, p1, p2, p3)
-    for (let i = 0; i < path.length - 3; i += 3) {
-      const p0 = path[i];
-      const p1 = path[i + 1];
-      const p2 = path[i + 2];
-      const p3 = path[i + 3];
+    let maxDistance = 0;
+    let index = 0;
 
-      // Generate intermediate points along the cubic Bézier curve
-      for (let t = 0; t <= 1; t += 1 / segmentsPerCurve) {
-        const point = cubicBezier(p0, p1, p2, p3, t);
-        smoothPath.push(point);
+    // Find the point with the maximum distance from the line between the first and last points
+    for (let i = 1; i < path.length - 1; i++) {
+      const distance = getPerpendicularDistance(
+        path[i],
+        path[0],
+        path[path.length - 1]
+      );
+      if (distance > maxDistance) {
+        maxDistance = distance;
+        index = i;
       }
     }
 
-    // Add remaining points that don't form a complete Bézier curve group
-    for (let i = path.length - 3; i < path.length; i++) {
-      smoothPath.push(path[i]);
-    }
+    // If the maximum distance is greater than epsilon, recursively simplify
+    if (maxDistance > epsilon) {
+      const leftPath = rdpSimplify(path.slice(0, index + 1), epsilon);
+      const rightPath = rdpSimplify(path.slice(index), epsilon);
 
-    return smoothPath;
+      // Combine the two halves, removing the duplicate point at the index
+      return leftPath.slice(0, leftPath.length - 1).concat(rightPath);
+    } else {
+      // If the distance is less than epsilon, the entire segment is a straight line
+      return [path[0], path[path.length - 1]];
+    }
   }
 
   function findNearestWaterPoint(start) {
@@ -270,11 +281,7 @@ function generateRouteLogic(GRID, START_PORT, END_PORT) {
   startIndex = findNearestWaterPoint(startIndex);
   endIndex = findNearestWaterPoint(endIndex);
 
-  // const path = aStarMinSum(GRID, startIndex, endIndex);
-
   let path = aStarMinSum(GRID, startIndex, endIndex);
-
-  //   console.log("also path operator");
   //   console.log(path);
 
   //
@@ -336,6 +343,7 @@ function generateRouteLogic(GRID, START_PORT, END_PORT) {
     path.push(end); // Add the end point to the path
     return path;
   }
+
   // Splits the path into n sections
   function splitPath(path, n) {
     const sectionSize = Math.floor(path.length / n);
@@ -397,8 +405,6 @@ function generateRouteLogic(GRID, START_PORT, END_PORT) {
       path = optimizePath(path, numsec);
     }
   }
-
-  // console.log("Test path optimized here");
   // // var test = path.slice(Math.floor(path.length*0.4),path.length-1);
   // // test = optimizePath(test,1);
   // var test = getStraightLinePath(path[Math.floor(path.length*0.4)],path[path.length-1]);
@@ -434,7 +440,8 @@ function generateRouteLogic(GRID, START_PORT, END_PORT) {
 
   // Example usage of smoothing the real-world path
   realWorldPath;
-  const smoothedRealWorldPath = smoothPathBezier(realWorldPath);
+  var epsilon = 0.1;
+  const smoothedRealWorldPath = rdpSimplify(realWorldPath, epsilon);
   // Convert smoothed path to lat-lng format for leaflet
   var smoothedLatLngs = smoothedRealWorldPath.map((point) => [
     point.y,
